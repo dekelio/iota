@@ -225,14 +225,18 @@ def compute_metrics_baseline(metrics, singles, num_images, classes_fn):
     return metrics
 
 
-def compute_metrics_entropy_and_dkl(metrics, num_labels, singles ,
-                                  mis_tree_graph,
-                     num_images, c22_dict, ind_to_label):
+def compute_metrics_entropy_and_dkl(metrics, num_labels, singles,
+                                  mis_tree_graph, num_images, c22_dict,
+                                    ind_to_label):
     # =============================================
     # Compute delta entropy and DKLs given labels.
     # =============================================
     for start in range(num_labels):  # Run over labels in vocabulary.
         sorted_tree = model.sort_graph(mis_tree_graph, start)
+        # verified that this is const regardless of the root label.
+        uncond_entropy = model.compute_tree_entropy(sorted_tree, start,
+                                             c22_dict, singles,
+                                             num_images, ind_to_label)
         root_p = float(singles[ind_to_label[start]]) / num_images
         root_marginals = np.array([1.0 - root_p, root_p])
         root_dkl = model.compute_dkl(np.array([0.0, 1.0]), root_marginals)
@@ -243,7 +247,7 @@ def compute_metrics_entropy_and_dkl(metrics, num_labels, singles ,
         if start % 100 == 0:
             print('label=%3d/%d H=%4.2f dkl=%4.2f root_dkl=%4.2f' %
                   (start, num_labels, H, dkl, root_dkl))
-        metrics.loc[start, 'H'] = H
+        metrics.loc[start, 'H'] = uncond_entropy - H
         metrics.loc[start, 'dkl'] = dkl + root_dkl
     return metrics
 
