@@ -15,6 +15,8 @@ np.set_printoptions(precision=4)
 pd.set_option('precision', 2)
 
 print(os.getcwd())
+os.environ['RES_DIR'] = '/cortex/users/brachalior/storage/results/'
+os.environ['OID_DIR'] = '/cortex/data/images/openimagesV3/oid/'
 
 # Init: flags, version, hyper parameters
 assert(sys.version_info[0] == 2)  # Python 2.7
@@ -116,5 +118,5 @@ if args.plot_figures:
     vis.plot_precision(hp, files, precision, sem_p, raters_ub)
     vis.plot_recall(hp, files, recall, sem_r)
     vis.plot_precision_vs_recall(hp, files, precision, recall, raters_ub)
-    vis.plot_correlation(hp, files, image_metrics)
+    # vis.plot_correlation(hp, files, image_metrics)
     vis.write_models_to_html(image_metrics, hp, files)

@@ -215,25 +215,19 @@ def image_to_labels(annotations):
     return image_to_labels
 
 
-def compute_metrics(ind_to_label, singles, c22_dict, mis_tree_graph,
-                    num_images, num_labels, classes_fn, metrics_fn):
-
-    if os.path.isfile(metrics_fn):
-        print('Load metrics df from [%s]' % blue(metrics_fn))
-        metrics_df = pickle.load(open(metrics_fn, 'r'))
-        return metrics_df
-
-    print('Compute metrics (missing [%s])' % red(metrics_fn))
+def compute_metrics_baseline(metrics, singles, num_images, classes_fn):
     display_names = load_display_names(classes_fn)
-    metrics = pd.DataFrame.from_dict(ind_to_label, 'index',
-                                     columns=['LabelName'])
-    metrics.index.name = 'index'
     metrics['DisplayName'] = metrics['LabelName'].apply(lambda x: display_names[x] if x in display_names.keys() else '')
     metrics['px'] = metrics['LabelName'].apply(
         lambda x: float(singles[x]) / num_images)
     metrics['singleton'] = metrics['px'].apply(
         lambda x: model.entropy(np.array([1.0 - x, x])))
+    return metrics
 
+
+def compute_metrics_entropy_and_dkl(metrics, num_labels, singles ,
+                                  mis_tree_graph,
+                     num_images, c22_dict, ind_to_label):
     # =============================================
     # Compute delta entropy and DKLs given labels.
     # =============================================
@@ -251,7 +245,10 @@ def compute_metrics(ind_to_label, singles, c22_dict, mis_tree_graph,
                   (start, num_labels, H, dkl, root_dkl))
         metrics.loc[start, 'H'] = H
         metrics.loc[start, 'dkl'] = dkl + root_dkl
+    return metrics
 
+
+def compute_metrics_image_mi(metrics, singles, num_images):
     # =======================================================================
     # Compute information about image distribution MI(T; Image) is simply
     # computed from the fraction of images that contain a label.
@@ -261,14 +258,43 @@ def compute_metrics(ind_to_label, singles, c22_dict, mis_tree_graph,
     df.index.name = 'LabelName'
     metrics_df = pd.merge(metrics, df, how='outer', left_on='LabelName',
                       right_index=True)
-    add_metric_random(metrics_df)
+    return metrics_df
 
-    # Save to file and return
+
+def intialize_df(metrics_fn, ind_to_label):
+    print('Compute metrics (missing [%s])' % red(metrics_fn))
+    metrics = pd.DataFrame.from_dict(ind_to_label, 'index',
+                                     columns=['LabelName'])
+    metrics.index.name = 'index'
+    return metrics
+
+
+def save_metrics(metrics, metrics_fn):
     path = 'Data/models'
     if not os.path.exists(path): os.makedirs(path)
-    pickle.dump(metrics_df, open(metrics_fn, 'wb'))
+    pickle.dump(metrics, open(metrics_fn, 'wb'))
     print('Saved metrics df to [%s]' % green(metrics_fn))
-    return metrics_df
+
+
+def compute_metrics(ind_to_label, singles, c22_dict, mis_tree_graph,
+                    num_images, num_labels, classes_fn, metrics_fn):
+    # Load if exist.
+    if os.path.isfile(metrics_fn):
+        print('Load metrics df from [%s]' % blue(metrics_fn))
+        metrics_df = pickle.load(open(metrics_fn, 'r'))
+        return metrics_df
+
+    # compute metrics
+    metrics = intialize_df(metrics_fn, ind_to_label)
+    metrics = compute_metrics_baseline(metrics, singles, num_images, classes_fn)
+    metrics = compute_metrics_entropy_and_dkl(metrics, num_labels, singles,
+                                      mis_tree_graph, num_images, c22_dict,
+                                      ind_to_label)
+    metrics = compute_metrics_image_mi(metrics, singles, num_images)
+
+    add_metric_random(metrics)
+    save_metrics(metrics, metrics_fn)
+    return metrics
 
 
 # Compute metrics (over the mixture model)

@@ -40,19 +40,19 @@ def get_models_style():
     # colors = set_colors() # For earlier versions of matplotlib
     colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
     metrics = dict()
-    metrics[6] = {'name': 'cH', 'legend': '$\mathbf{cw-\Delta H}$',
+    metrics[6] = {'name': 'cH', 'legend': '$cw-\Delta H$',
                   'color': colors['royalblue'], 'fmt': '-', 'marker': 's'}
-    metrics[5] = {'name': 'cDKL', 'legend': '$\mathbf{cw-D_{KL}}$',
+    metrics[5] = {'name': 'cDKL', 'legend': '$cw-D_{KL}$',
                   'color': colors['steelblue'], 'fmt': '-', 'marker': '*'}
-    metrics[3] = {'name': 'cMI', 'legend': '$\mathbf{cw-Image \Delta H}$',
+    metrics[3] = {'name': 'cMI', 'legend': '$cw-Image \Delta H$',
                   'color': colors['chocolate'], 'fmt': '-', 'marker': '.'}
-    metrics[2] = {'name': 'cSingleton', 'legend': '$\mathbf{cw-Singleton}$',
+    metrics[2] = {'name': 'cSingleton', 'legend': '$cw-Singleton$',
                   'color': colors['firebrick'], 'fmt': '-', 'marker': 'x'}
-    metrics[4] = {'name': 'cPX', 'legend': '$\mathbf{cw-p(x)}$',
+    metrics[4] = {'name': 'cPX', 'legend': '$cw-p(x)$',
                   'color': colors['y'], 'fmt': '-', 'marker': '^'}
-    metrics[1] = {'name': 'Confidence', 'legend': '$\mathbf{confidence}$',
+    metrics[1] = {'name': 'Confidence', 'legend': '$confidence$',
                   'color': colors['olivedrab'], 'fmt': '-', 'marker': '+'}
-    metrics[0] = {'name': 'random', 'legend': '$\mathbf{random}$',
+    metrics[0] = {'name': 'random', 'legend': '$random$',
                   'color': colors['grey'], 'fmt': '-', 'marker': ''}
     # metrics[7] = {'name': 'H', 'legend': 'H',
     #               'color': colors['red'], 'fmt': '--', 'marker': ''}
@@ -73,18 +73,18 @@ def get_models_style():
     # metrics[15] = {'name': 'imd_cDKL', 'legend': '$cond_cDKL$',
     #                'color': colors['cyan'], 'fmt': '.-', 'marker': ''}
     # fs = {'axis': 26, 'ticks': 16, 'font_size': 18, 'legend': 18}
-    fs = {'axis': 24, 'ticks': 16, 'font_size': 18, 'legend': 18}
+    fs = {'axis': 24, 'ticks': 20, 'font_size': 18, 'legend': 18}
     line_width = 2
     # marker_size = 7
     marker_size = 10
     return metrics, fs, line_width, marker_size
 
 
-def save_figure_and_close(files, param_string, filename):
+def save_figure_and_close(files, param_string, filename, extension='.png'):
     path = files['results_dir'] + param_string
     if not os.path.exists(path):
         os.makedirs(path)
-    filepath = path + '/' + param_string + '_' + filename
+    filepath = path + '/' + param_string + '_' + filename + extension
     plt.savefig(filepath, bbox_inches='tight', facecolor='white')
     print('Write figure to [%s]' % utils.blue(filepath))
     plt.close()
@@ -185,9 +185,9 @@ def plot_recall(hp, files, average_recall, err, show=False):
 
 
 def plot_precision_vs_recall(hp, files, average_precision, average_recall,
-                             raters_p, show=False, legend_loc='in'):
+                             raters_p, show=False, legend_loc='none'):
     add_eval_set_to_string = True
-    # param_string = utils.create_param_string(hp, add_eval_set_to_string)
+    param_string = utils.create_param_string(hp, add_eval_set_to_string)
     metrics, fs, lw, ms = get_models_style()
     fig, ax = plt.subplots(figsize=(10, 7))
     # fig, ax = plt.subplots()
@@ -199,6 +199,7 @@ def plot_precision_vs_recall(hp, files, average_precision, average_recall,
         plt.plot(r, p, lw=lw, label=metrics[key]['legend'],
                  color=metrics[key][
                      'color'], marker=metrics[key]['marker'], mew=2, ms=ms)
+    # plt.axis('equal')
     ax.set_xlabel('Recall', fontsize=fs['axis'])
     ax.set_ylabel('Precision', fontsize=fs['axis'])
     ax.set_xlim(left=0, right=1)
@@ -207,20 +208,24 @@ def plot_precision_vs_recall(hp, files, average_precision, average_recall,
     plt.rc('ytick', labelsize=fs['ticks'])
     plt.axhline(y=raters_p, color='grey', linestyle='--', linewidth=1,
                 label='rater agreement')
-
-    if legend_loc == 'out':
+    plt.text(0.02, 0.685, 'Inter-rater agreement', fontsize=20)
+    # plt.text(0.02, 0.65, 'Inter-rater agreement', fontsize=20)
+    legend_fs = 18
+    if legend_loc == 'up':
         plt.legend(bbox_to_anchor=(-0.04, 1.02, 1, 0.2), loc="lower left",
                    mode="expand", ncol=3,
-                   prop={'size': 14, 'weight': 'bold'},
+                   prop={'size': legend_fs},
                    frameon=False, borderaxespad=0)
     if legend_loc == 'in':
         plt.legend(loc="upper left", ncol=2,
-                   prop={'size': 14, 'weight': 'bold'},
+                   prop={'size': legend_fs, 'weight': 'bold'},
                    frameon=False, borderaxespad=0.9)
-
+    if legend_loc == 'side':
+        plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left", ncol=1,
+                   prop={'size': legend_fs}, frameon=False, borderaxespad=0.9)
     if show: plt.show()
-    fig.dpi = 300  # 200
-    # save_figure_and_close(files, param_string, 'pr.png')
+    fig.dpi = 600  # 200
+    save_figure_and_close(files, param_string, 'pr', extension='.png')
 
 
 def write_models_to_html(image_metrics, hp, files):
